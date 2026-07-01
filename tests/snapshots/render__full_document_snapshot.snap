@@ -1,0 +1,61 @@
+---
+source: tests/render.rs
+expression: md
+---
+# `demo`
+
+A demo CLI for testing clapdown
+
+**Usage:** `demo [OPTIONS] <COMMAND>`
+
+## Options
+
+`-v`, `--verbose`
+:   Increase verbosity
+
+## `demo parse`
+
+Parse a file
+
+**Usage:** `demo parse [OPTIONS] [FILE]`
+
+### Arguments
+
+`<FILE>`
+:   Input file
+
+### Options
+
+`--check`
+:   Only check, do not write
+
+## `demo format`
+
+Format files
+
+Formats every given path in place. Reads stdin when no paths are given.
+
+**Usage:** `demo format [OPTIONS] [PATH]...`
+
+### Arguments
+
+`<PATH>...`
+:   Paths to format
+
+### Options
+
+`--output <OUTPUT>`
+:   Output format
+
+    Default value: `pretty`
+
+    Possible values:
+
+    - `pretty`: Annotated multi-line snippets
+    - `concise`: One finding per line
+    - `json`: Machine-readable JSON
+
+`--line-width <LINE_WIDTH>`
+:   Maximum line width
+
+    Default value: `80`

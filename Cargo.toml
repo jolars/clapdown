@@ -1,0 +1,17 @@
+[package]
+name = "clapdown"
+version = "0.1.0"
+edition = "2024"
+description = "Generate well-structured Markdown documentation from a clap CLI."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jolars/clapdown"
+readme = "README.md"
+keywords = ["clap", "markdown", "documentation", "cli", "mdbook"]
+categories = ["command-line-interface", "development-tools", "accessibility"]
+
+[dependencies]
+clap = "4"
+
+[dev-dependencies]
+clap = { version = "4", features = ["derive"] }
+insta = "1"
