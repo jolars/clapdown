@@ -2,10 +2,12 @@
 name = "clapdown"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.88"
 description = "Generate well-structured Markdown documentation from a clap CLI."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/jolars/clapdown"
 readme = "README.md"
+authors = ["Johan Larsson <johan@jolars.co>"]
 keywords = ["clap", "markdown", "documentation", "cli", "mdbook"]
 categories = ["command-line-interface", "development-tools", "accessibility"]
 
