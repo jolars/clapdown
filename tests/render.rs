@@ -1,7 +1,7 @@
 mod common;
 
 use clap::{Command, CommandFactory};
-use clapdown::Options;
+use clapdown::{Flavor, Options, render};
 use common::Cli;
 
 /// Extract the level of every ATX heading (`#`..`######`) in order.
@@ -20,7 +20,7 @@ fn heading_levels(md: &str) -> Vec<usize> {
 
 #[test]
 fn headings_never_skip_a_level() {
-    let md = Options::new().render(&Cli::command());
+    let md = render(&Cli::command(), &Options::new());
     let levels = heading_levels(&md);
 
     assert!(!levels.is_empty(), "expected at least one heading");
@@ -38,8 +38,8 @@ fn headings_never_skip_a_level() {
 #[test]
 fn base_heading_level_shifts_every_heading() {
     let cmd = Cli::command();
-    let base1 = heading_levels(&Options::new().base_heading_level(1).render(&cmd));
-    let base3 = heading_levels(&Options::new().base_heading_level(3).render(&cmd));
+    let base1 = heading_levels(&render(&cmd, &Options::new().base_heading_level(1)));
+    let base3 = heading_levels(&render(&cmd, &Options::new().base_heading_level(3)));
 
     assert_eq!(base1.len(), base3.len());
     for (a, b) in base1.iter().zip(&base3) {
@@ -49,7 +49,7 @@ fn base_heading_level_shifts_every_heading() {
 
 #[test]
 fn subcommands_nest_one_level_below_parent() {
-    let md = Options::new().render(&Cli::command());
+    let md = render(&Cli::command(), &Options::new());
     assert!(md.contains("# `demo`\n"), "root command at h1");
     assert!(md.contains("## `demo parse`\n"), "subcommand at h2");
     assert!(
@@ -60,7 +60,7 @@ fn subcommands_nest_one_level_below_parent() {
 
 #[test]
 fn long_about_is_preferred_over_short_about() {
-    let md = Options::new().render(&Cli::command());
+    let md = render(&Cli::command(), &Options::new());
     assert!(
         md.contains("Formats every given path in place."),
         "the long about of `format` should be rendered"
@@ -69,7 +69,7 @@ fn long_about_is_preferred_over_short_about() {
 
 #[test]
 fn option_renders_as_definition_list_with_defaults_and_values() {
-    let md = Options::new().render(&Cli::command());
+    let md = render(&Cli::command(), &Options::new());
 
     assert!(
         md.contains("`--output <OUTPUT>`\n:   Output format"),
@@ -83,7 +83,7 @@ fn option_renders_as_definition_list_with_defaults_and_values() {
 
 #[test]
 fn variadic_positional_gets_ellipsis() {
-    let md = Options::new().render(&Cli::command());
+    let md = render(&Cli::command(), &Options::new());
     assert!(
         md.contains("`<PATH>...`"),
         "variadic positional shows `...`"
@@ -92,16 +92,17 @@ fn variadic_positional_gets_ellipsis() {
 
 #[test]
 fn boolean_flag_has_no_value_placeholder() {
-    let md = Options::new().render(&Cli::command());
+    let md = render(&Cli::command(), &Options::new());
     assert!(md.contains("`-v`, `--verbose`"));
     assert!(!md.contains("--verbose <"));
 }
 
 #[test]
 fn title_overrides_root_heading() {
-    let md = Options::new()
-        .title("Command-Line Reference")
-        .render(&Cli::command());
+    let md = render(
+        &Cli::command(),
+        &Options::new().title("Command-Line Reference"),
+    );
     assert!(md.starts_with("# Command-Line Reference\n"));
     assert!(!md.contains("# `demo`\n"));
 }
@@ -119,7 +120,10 @@ fn nest(names: &[&'static str]) -> Command {
 #[test]
 fn deep_nesting_falls_back_to_bold_beyond_h6() {
     // base 1 + depth 6 = level 7, which cannot be an ATX heading.
-    let md = Options::new().render(&nest(&["c0", "c1", "c2", "c3", "c4", "c5", "c6"]));
+    let md = render(
+        &nest(&["c0", "c1", "c2", "c3", "c4", "c5", "c6"]),
+        &Options::new(),
+    );
 
     assert!(
         !md.lines().any(|l| l.starts_with("####### ")),
@@ -133,10 +137,7 @@ fn deep_nesting_falls_back_to_bold_beyond_h6() {
 
 #[test]
 fn pandoc_emits_yaml_metadata_block_with_title() {
-    use clapdown::Flavor;
-    let md = Options::new()
-        .flavor(Flavor::Pandoc)
-        .render(&Cli::command());
+    let md = render(&Cli::command(), &Options::new().flavor(Flavor::Pandoc));
     assert!(
         md.starts_with("---\ntitle: demo\n"),
         "leading metadata block"
@@ -146,10 +147,7 @@ fn pandoc_emits_yaml_metadata_block_with_title() {
 
 #[test]
 fn pandoc_omits_root_h1_when_metadata_present() {
-    use clapdown::Flavor;
-    let md = Options::new()
-        .flavor(Flavor::Pandoc)
-        .render(&Cli::command());
+    let md = render(&Cli::command(), &Options::new().flavor(Flavor::Pandoc));
     assert!(
         !md.lines().any(|l| l == "# `demo`"),
         "root h1 replaced by the metadata title"
@@ -159,33 +157,29 @@ fn pandoc_omits_root_h1_when_metadata_present() {
 
 #[test]
 fn pandoc_title_override_goes_into_metadata() {
-    use clapdown::Flavor;
-    let md = Options::new()
-        .flavor(Flavor::Pandoc)
-        .title("My Tool")
-        .render(&Cli::command());
+    let md = render(
+        &Cli::command(),
+        &Options::new().flavor(Flavor::Pandoc).title("My Tool"),
+    );
     assert!(md.starts_with("---\ntitle: My Tool\n"));
 }
 
 #[test]
 fn pandoc_metadata_field_injects_custom_field() {
-    use clapdown::Flavor;
-    let md = Options::new()
-        .flavor(Flavor::Pandoc)
-        .metadata_field("author", "Jane Doe")
-        .render(&Cli::command());
+    let md = render(
+        &Cli::command(),
+        &Options::new()
+            .flavor(Flavor::Pandoc)
+            .metadata_field("author", "Jane Doe"),
+    );
     assert!(md.contains("\nauthor: Jane Doe\n"));
 }
 
 #[test]
 fn pandoc_without_metadata_matches_mdbook() {
-    use clapdown::Flavor;
     let cmd = Cli::command();
-    let mdbook = Options::new().flavor(Flavor::Mdbook).render(&cmd);
-    let pandoc = Options::new()
-        .flavor(Flavor::Pandoc)
-        .metadata(false)
-        .render(&cmd);
+    let mdbook = render(&cmd, &Options::new().flavor(Flavor::Mdbook));
+    let pandoc = render(&cmd, &Options::new().flavor(Flavor::Pandoc).metadata(false));
     assert_eq!(
         pandoc, mdbook,
         "with the metadata block off, Pandoc output equals mdBook"
@@ -194,16 +188,17 @@ fn pandoc_without_metadata_matches_mdbook() {
 
 #[test]
 fn full_document_snapshot() {
-    let md = Options::new().render(&Cli::command());
+    let md = render(&Cli::command(), &Options::new());
     insta::assert_snapshot!(md);
 }
 
 #[test]
 fn pandoc_full_document_snapshot() {
-    use clapdown::Flavor;
-    let md = Options::new()
-        .flavor(Flavor::Pandoc)
-        .metadata_field("author", "Jane Doe")
-        .render(&Cli::command());
+    let md = render(
+        &Cli::command(),
+        &Options::new()
+            .flavor(Flavor::Pandoc)
+            .metadata_field("author", "Jane Doe"),
+    );
     insta::assert_snapshot!(md);
 }

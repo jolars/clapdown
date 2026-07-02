@@ -32,10 +32,11 @@ Render from a derived CLI type:
 ```rust
 use clap::CommandFactory;
 
-let markdown = clapdown::Options::new()
+let options = clapdown::Options::new()
     .base_heading_level(1)
-    .footer(false)
-    .render(&Cli::command());
+    .footer(false);
+
+let markdown = clapdown::render(&Cli::command(), &options);
 ```
 
 or go straight from the type:

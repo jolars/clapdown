@@ -15,7 +15,7 @@
 //!     .about("Greet someone")
 //!     .arg(clap::Arg::new("name").help("Who to greet"));
 //!
-//! let markdown = clapdown::Options::new().render(&cmd);
+//! let markdown = clapdown::render(&cmd, &clapdown::Options::new());
 //! assert!(markdown.contains("# `greet`"));
 //! ```
 //!
@@ -44,8 +44,8 @@ use clap::{Command, CommandFactory};
 
 /// Render `cmd` to a Markdown string using `opts`.
 ///
-/// Equivalent to [`Options::render`]; provided for callers that already hold an
-/// [`Options`] value.
+/// The main entry point when you already hold a [`Command`]. For a type that
+/// derives [`clap::Parser`], use [`render_from`] instead.
 pub fn render(cmd: &Command, opts: &Options) -> String {
     render::render(cmd, opts)
 }

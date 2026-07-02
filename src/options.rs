@@ -25,15 +25,16 @@ pub enum Flavor {
 /// Options controlling how a [`clap::Command`] is rendered to Markdown.
 ///
 /// Construct with [`Options::new`] (or [`Options::default`]) and configure with
-/// the chained builder methods, then call [`Options::render`].
+/// the chained builder methods, then pass it to the crate's `render` or
+/// `render_from` function.
 ///
 /// ```
 /// # use clap::Command;
 /// let cmd = Command::new("demo").about("A demo");
-/// let md = clapdown::Options::new()
-///     .base_heading_level(2)
-///     .footer(false)
-///     .render(&cmd);
+/// let md = clapdown::render(
+///     &cmd,
+///     &clapdown::Options::new().base_heading_level(2).footer(false),
+/// );
 /// assert!(md.starts_with("## `demo`"));
 /// ```
 #[derive(Debug, Clone)]
@@ -137,21 +138,18 @@ impl Options {
     ///
     /// ```
     /// # use clap::Command;
-    /// # use clapdown::{Flavor, Options};
+    /// # use clapdown::{Flavor, Options, render};
     /// let cmd = Command::new("demo").about("A demo");
-    /// let md = Options::new()
-    ///     .flavor(Flavor::Pandoc)
-    ///     .metadata_field("author", "Jane Doe")
-    ///     .render(&cmd);
+    /// let md = render(
+    ///     &cmd,
+    ///     &Options::new()
+    ///         .flavor(Flavor::Pandoc)
+    ///         .metadata_field("author", "Jane Doe"),
+    /// );
     /// assert!(md.contains("author: Jane Doe"));
     /// ```
     pub fn metadata_field(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.metadata_fields.push((key.into(), value.into()));
         self
-    }
-
-    /// Render `cmd` to a Markdown string using these options.
-    pub fn render(&self, cmd: &clap::Command) -> String {
-        crate::render::render(cmd, self)
     }
 }

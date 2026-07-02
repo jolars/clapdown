@@ -31,7 +31,8 @@ Three modules under `src/`:
 - **`lib.rs`** --- public API surface. Re-exports `Options` and `Flavor`, and
   exposes free functions `render(&Command, &Options)` and
   `render_from::<C: CommandFactory>(&Options)`.
-- **`options.rs`** --- the `Options` builder (chained setters, then `.render()`)
+- **`options.rs`** --- the `Options` config builder (chained setters, then
+  passed to `render`/`render_from`)
   and the `Flavor` enum. `Flavor` is `#[non_exhaustive]`; `Mdbook` and `Pandoc`
   exist, with `CommonMark` planned, so match arms must stay open. `Pandoc`
   differs only in a leading YAML metadata block (see below); the `metadata` and
