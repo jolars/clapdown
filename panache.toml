@@ -1,3 +1,6 @@
 flavor = "gfm"
 
 extend-exclude = ["AGENTS.md", "CLAUDE.md"]
+
+[formatters]
+rust = "rustfmt"
