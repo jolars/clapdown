@@ -2,8 +2,8 @@
 
 /// The Markdown flavor to target.
 ///
-/// Different consumers accept slightly different Markdown extensions. For now
-/// only [`Flavor::Mdbook`] is implemented; `CommonMark` and `Pandoc` are
+/// Different consumers accept slightly different Markdown extensions.
+/// [`Flavor::Mdbook`] and [`Flavor::Pandoc`] are implemented; `CommonMark` is
 /// planned. The enum is `#[non_exhaustive]` so new flavors can be added without
 /// a breaking change.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -13,6 +13,13 @@ pub enum Flavor {
     /// definition lists (enabled by default in mdBook) for arguments.
     #[default]
     Mdbook,
+
+    /// [Pandoc](https://pandoc.org/) Markdown. Emits the same definition lists
+    /// and ATX headings as [`Flavor::Mdbook`], preceded by a YAML metadata
+    /// block carrying the document `title` (see [`Options::metadata`]). With
+    /// the title in the metadata, the root command's `h1` is omitted from the
+    /// body to avoid duplicating it.
+    Pandoc,
 }
 
 /// Options controlling how a [`clap::Command`] is rendered to Markdown.
@@ -37,6 +44,8 @@ pub struct Options {
     pub(crate) table_of_contents: bool,
     pub(crate) footer: bool,
     pub(crate) aliases: bool,
+    pub(crate) metadata: bool,
+    pub(crate) metadata_fields: Vec<(String, String)>,
 }
 
 impl Default for Options {
@@ -48,6 +57,8 @@ impl Default for Options {
             table_of_contents: false,
             footer: false,
             aliases: true,
+            metadata: true,
+            metadata_fields: Vec::new(),
         }
     }
 }
@@ -102,6 +113,40 @@ impl Options {
     /// Show command and argument aliases (default on).
     pub fn aliases(mut self, on: bool) -> Self {
         self.aliases = on;
+        self
+    }
+
+    /// Emit a Pandoc YAML metadata block (default on, [`Flavor::Pandoc`] only).
+    ///
+    /// The block always carries a `title` (the [`Options::title`] override if
+    /// set, otherwise the root command name) plus any custom
+    /// [`Options::metadata_field`]s. When the block is emitted, its `title`
+    /// stands in for the document's top-level heading, so the root command's
+    /// `h1` is omitted from the body. Has no effect for other flavors.
+    pub fn metadata(mut self, on: bool) -> Self {
+        self.metadata = on;
+        self
+    }
+
+    /// Add a custom field to the Pandoc YAML metadata block.
+    ///
+    /// Fields are emitted in insertion order after `title`; a `title` key is
+    /// ignored here (use [`Options::title`] instead). Only affects
+    /// [`Flavor::Pandoc`] with [`Options::metadata`] enabled. Can be called
+    /// repeatedly to add several fields.
+    ///
+    /// ```
+    /// # use clap::Command;
+    /// # use clapdown::{Flavor, Options};
+    /// let cmd = Command::new("demo").about("A demo");
+    /// let md = Options::new()
+    ///     .flavor(Flavor::Pandoc)
+    ///     .metadata_field("author", "Jane Doe")
+    ///     .render(&cmd);
+    /// assert!(md.contains("author: Jane Doe"));
+    /// ```
+    pub fn metadata_field(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.metadata_fields.push((key.into(), value.into()));
         self
     }
 

@@ -32,23 +32,15 @@ Three modules under `src/`:
   exposes free functions `render(&Command, &Options)` and
   `render_from::<C: CommandFactory>(&Options)`.
 - **`options.rs`** --- the `Options` builder (chained setters, then `.render()`)
-  and the `Flavor` enum. `Flavor` is `#[non_exhaustive]`; only `Mdbook` exists,
-  with `CommonMark` and `Pandoc` planned, so match arms must stay open.
+  and the `Flavor` enum. `Flavor` is `#[non_exhaustive]`; `Mdbook` and `Pandoc`
+  exist, with `CommonMark` planned, so match arms must stay open. `Pandoc`
+  differs only in a leading YAML metadata block (see below); the `metadata` and
+  `metadata_fields` options drive it.
 - **`render.rs`** --- the whole rendering engine, private to the crate. `render`
   recurses through `render_command`, carrying a `path` (Vec of command-name
   segments) and a `depth`. Flavor-specific formatting is isolated in small
   helpers (`write_heading`, `definition`, `arg_term`, `slug`) so new flavors can
   be added with minimal churn.
-
-### Core invariant: the heading outline never skips a level
-
-This is the crate's whole reason to exist (it fixes `clap-markdown`'s malformed
-`h1 -> h2 -> h6` outline). Heading level is computed as
-`base_heading_level + depth`, subcommands recurse at `depth + 1`, and a
-command's `Arguments`/`Options` sections sit at `level + 1`. Levels beyond h6
-fall back to a bold label (see `write_heading`). Any change to heading logic
-must preserve this; `headings_never_skip_a_level` and
-`base_heading_level_shifts_every_heading` in `tests/render.rs` guard it.
 
 ### Rendering conventions
 
@@ -58,6 +50,11 @@ must preserve this; `headings_never_skip_a_level` and
   filtered out.
 - Arguments render as mdBook/Pandoc **definition lists** (`term` line, then
   `:   definition`). `definition` handles multi-block, multi-line bodies.
+- The `Pandoc` flavor prepends a YAML metadata block (`write_yaml_metadata`)
+  with the `title` (the `title` option, else the command name) plus any
+  `metadata_fields`. When the block is emitted (`emits_metadata`), the root
+  command's `h1` is skipped in `render_command` so the title is not duplicated.
+  Values are quoted only when needed (`yaml_scalar`/`is_plain_scalar`).
 - Output is normalized to a single trailing newline.
 
 ### Test fixture

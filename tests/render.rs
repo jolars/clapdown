@@ -132,7 +132,78 @@ fn deep_nesting_falls_back_to_bold_beyond_h6() {
 }
 
 #[test]
+fn pandoc_emits_yaml_metadata_block_with_title() {
+    use clapdown::Flavor;
+    let md = Options::new()
+        .flavor(Flavor::Pandoc)
+        .render(&Cli::command());
+    assert!(
+        md.starts_with("---\ntitle: demo\n"),
+        "leading metadata block"
+    );
+    assert!(md.contains("\n---\n\n"), "metadata block is closed");
+}
+
+#[test]
+fn pandoc_omits_root_h1_when_metadata_present() {
+    use clapdown::Flavor;
+    let md = Options::new()
+        .flavor(Flavor::Pandoc)
+        .render(&Cli::command());
+    assert!(
+        !md.lines().any(|l| l == "# `demo`"),
+        "root h1 replaced by the metadata title"
+    );
+    assert!(md.contains("## `demo parse`"), "subcommands still render");
+}
+
+#[test]
+fn pandoc_title_override_goes_into_metadata() {
+    use clapdown::Flavor;
+    let md = Options::new()
+        .flavor(Flavor::Pandoc)
+        .title("My Tool")
+        .render(&Cli::command());
+    assert!(md.starts_with("---\ntitle: My Tool\n"));
+}
+
+#[test]
+fn pandoc_metadata_field_injects_custom_field() {
+    use clapdown::Flavor;
+    let md = Options::new()
+        .flavor(Flavor::Pandoc)
+        .metadata_field("author", "Jane Doe")
+        .render(&Cli::command());
+    assert!(md.contains("\nauthor: Jane Doe\n"));
+}
+
+#[test]
+fn pandoc_without_metadata_matches_mdbook() {
+    use clapdown::Flavor;
+    let cmd = Cli::command();
+    let mdbook = Options::new().flavor(Flavor::Mdbook).render(&cmd);
+    let pandoc = Options::new()
+        .flavor(Flavor::Pandoc)
+        .metadata(false)
+        .render(&cmd);
+    assert_eq!(
+        pandoc, mdbook,
+        "with the metadata block off, Pandoc output equals mdBook"
+    );
+}
+
+#[test]
 fn full_document_snapshot() {
     let md = Options::new().render(&Cli::command());
+    insta::assert_snapshot!(md);
+}
+
+#[test]
+fn pandoc_full_document_snapshot() {
+    use clapdown::Flavor;
+    let md = Options::new()
+        .flavor(Flavor::Pandoc)
+        .metadata_field("author", "Jane Doe")
+        .render(&Cli::command());
     insta::assert_snapshot!(md);
 }

@@ -46,20 +46,35 @@ let markdown = clapdown::render_from::<Cli>(&clapdown::Options::new());
 
 ## Options
 
-  | Method                     | Default      | Effect                             |
-  | -------------------------- | ------------ | ---------------------------------- |
-  | `flavor(Flavor)`           | `Mdbook`     | Target Markdown flavor.            |
-  | `base_heading_level(u8)`   | `1`          | Heading level of the root command. |
-  | `title(impl Into<String>)` | command name | Override the root heading text.    |
-  | `table_of_contents(bool)`  | `false`      | Emit a nested table of contents.   |
-  | `footer(bool)`             | `false`      | Emit an attribution footer.        |
-  | `aliases(bool)`            | `true`       | Show command aliases.              |
+  | Method                       | Default      | Effect                                     |
+  | ---------------------------- | ------------ | ------------------------------------------ |
+  | `flavor(Flavor)`             | `Mdbook`     | Target Markdown flavor.                    |
+  | `base_heading_level(u8)`     | `1`          | Heading level of the root command.         |
+  | `title(impl Into<String>)`   | command name | Override the root heading (Pandoc: title). |
+  | `table_of_contents(bool)`    | `false`      | Emit a nested table of contents.           |
+  | `footer(bool)`               | `false`      | Emit an attribution footer.                |
+  | `aliases(bool)`              | `true`       | Show command aliases.                      |
+  | `metadata(bool)`             | `true`       | Emit the Pandoc YAML metadata block.       |
+  | `metadata_field(key, value)` | none         | Add a custom Pandoc metadata field.        |
 
 ## Flavors
 
-Only `Flavor::Mdbook` is implemented today. It emits [definition lists], which
-render natively in [mdBook] (enabled by default) and in Pandoc. The `Flavor`
-enum is `#[non_exhaustive]`; `CommonMark` and `Pandoc` flavors are planned.
+`Flavor::Mdbook` and `Flavor::Pandoc` are implemented; a `CommonMark` flavor is
+planned. Both emit [definition lists], which render natively in [mdBook]
+(enabled by default) and in Pandoc. The `Flavor` enum is `#[non_exhaustive]`.
+
+`Flavor::Pandoc` additionally prefixes the document with a [YAML metadata block]
+carrying the `title` (from `title(...)`, else the command name) plus any
+`metadata_field(...)` entries. Because the title lives in the metadata, the root
+command's `h1` is omitted from the body to avoid duplicating it. Disable the
+block with `metadata(false)`, in which case Pandoc output matches `Mdbook`.
+
+```yaml
+---
+title: demo
+author: Jane Doe
+---
+```
 
 ## License
 
@@ -69,3 +84,4 @@ Licensed under either of MIT or Apache-2.0 at your option.
 [`clap-markdown`]: https://github.com/ConnorGray/clap-markdown
 [mdBook]: https://rust-lang.github.io/mdBook/
 [definition lists]: https://rust-lang.github.io/mdBook/format/markdown.html
+[YAML metadata block]: https://pandoc.org/MANUAL.html#extension-yaml_metadata_block

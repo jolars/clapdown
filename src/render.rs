@@ -9,12 +9,16 @@ use std::fmt::Write;
 
 use clap::{Arg, ArgAction, Command};
 
-use crate::options::Options;
+use crate::options::{Flavor, Options};
 
 /// Render `root` to Markdown using `opts`.
 pub(crate) fn render(root: &Command, opts: &Options) -> String {
     let mut buf = String::new();
     let path = vec![canonical_name(root)];
+
+    if emits_metadata(opts) {
+        write_yaml_metadata(&mut buf, &path, opts);
+    }
 
     if opts.table_of_contents {
         buf.push_str("**Contents:**\n\n");
@@ -38,16 +42,19 @@ pub(crate) fn render(root: &Command, opts: &Options) -> String {
 fn render_command(buf: &mut String, cmd: &Command, path: &[String], depth: usize, opts: &Options) {
     let level = opts.base_heading_level as usize + depth;
 
-    // Heading. The root heading can be overridden by `title`.
-    let heading = if depth == 0 {
-        match &opts.title {
-            Some(title) => title.clone(),
-            None => format!("`{}`", path.join(" ")),
-        }
-    } else {
-        format!("`{}`", path.join(" "))
-    };
-    write_heading(buf, level, &heading);
+    // Heading. The root heading can be overridden by `title`, and is omitted
+    // entirely when a YAML metadata block already carries the title.
+    if depth != 0 || !emits_metadata(opts) {
+        let heading = if depth == 0 {
+            match &opts.title {
+                Some(title) => title.clone(),
+                None => format!("`{}`", path.join(" ")),
+            }
+        } else {
+            format!("`{}`", path.join(" "))
+        };
+        write_heading(buf, level, &heading);
+    }
 
     // Description: prefer the long about, fall back to the short about.
     if let Some(about) = cmd.get_long_about().or_else(|| cmd.get_about()) {
@@ -109,6 +116,53 @@ fn render_command(buf: &mut String, cmd: &Command, path: &[String], depth: usize
         child_path.push(sub.get_name().to_string());
         render_command(buf, sub, &child_path, depth + 1, opts);
     }
+}
+
+/// Whether a Pandoc YAML metadata block is emitted for these options.
+fn emits_metadata(opts: &Options) -> bool {
+    opts.flavor == Flavor::Pandoc && opts.metadata
+}
+
+/// Write the leading Pandoc YAML metadata block: the document `title` followed
+/// by any custom fields, in insertion order.
+fn write_yaml_metadata(buf: &mut String, path: &[String], opts: &Options) {
+    let title = opts.title.clone().unwrap_or_else(|| path.join(" "));
+    buf.push_str("---\n");
+    let _ = writeln!(buf, "title: {}", yaml_scalar(&title));
+    for (key, value) in &opts.metadata_fields {
+        // `title` is owned by `opts.title`; skip duplicates.
+        if key == "title" {
+            continue;
+        }
+        let _ = writeln!(buf, "{key}: {}", yaml_scalar(value));
+    }
+    buf.push_str("---\n\n");
+}
+
+/// Render a string as a YAML scalar, quoting only when a plain scalar would be
+/// ambiguous or invalid.
+fn yaml_scalar(value: &str) -> String {
+    if is_plain_scalar(value) {
+        value.to_string()
+    } else {
+        let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
+        format!("\"{escaped}\"")
+    }
+}
+
+/// Whether `value` is safe to emit as an unquoted YAML plain scalar.
+fn is_plain_scalar(value: &str) -> bool {
+    if value.is_empty() || value != value.trim() {
+        return false;
+    }
+    let first = value.chars().next().unwrap();
+    if "-?:,[]{}#&*!|>'\"%@`".contains(first) {
+        return false;
+    }
+    if value.ends_with(':') || value.contains(": ") || value.contains(" #") {
+        return false;
+    }
+    !value.chars().any(char::is_control)
 }
 
 /// Write a heading, or a bold label if the level would exceed h6.
