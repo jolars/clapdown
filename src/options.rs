@@ -22,6 +22,27 @@ pub enum Flavor {
     Pandoc,
 }
 
+/// How a custom Pandoc metadata value is written to YAML.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
+pub enum MetadataStyle {
+    /// Preserve newlines exactly, using a literal block for multiline text
+    /// and quoting single-line text only when needed.
+    #[default]
+    Auto,
+
+    /// Use a folded block (`>`). YAML folds ordinary line breaks into spaces.
+    /// A nonempty value retains at least one final newline, allowing Pandoc
+    /// to interpret ordinary text as a paragraph.
+    Folded,
+
+    /// Use a literal block (`|`), preserving line breaks and indentation.
+    /// A nonempty value retains at least one final newline. Pandoc still
+    /// interprets the value as Markdown; use code fences inside the value
+    /// for a verbatim code block.
+    Literal,
+}
+
 /// Options controlling how a [`clap::Command`] is rendered to Markdown.
 ///
 /// Construct with [`Options::new`] (or [`Options::default`]) and configure with
@@ -46,7 +67,7 @@ pub struct Options {
     pub(crate) footer: bool,
     pub(crate) aliases: bool,
     pub(crate) metadata: bool,
-    pub(crate) metadata_fields: Vec<(String, String)>,
+    pub(crate) metadata_fields: Vec<(String, String, MetadataStyle)>,
 }
 
 impl Default for Options {
@@ -136,6 +157,10 @@ impl Options {
     /// [`Flavor::Pandoc`] with [`Options::metadata`] enabled. Can be called
     /// repeatedly to add several fields.
     ///
+    /// Values retain their newlines, including trailing newlines. Use
+    /// [`Options::metadata_field_with_style`] to request a folded or literal
+    /// block explicitly.
+    ///
     /// ```
     /// # use clap::Command;
     /// # use clapdown::{Flavor, Options, render};
@@ -148,8 +173,33 @@ impl Options {
     /// );
     /// assert!(md.contains("author: Jane Doe"));
     /// ```
-    pub fn metadata_field(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.metadata_fields.push((key.into(), value.into()));
+    pub fn metadata_field(self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.metadata_field_with_style(key, value, MetadataStyle::Auto)
+    }
+
+    /// Add a custom Pandoc metadata field with an explicit YAML style.
+    ///
+    /// Has the same ordering, flavor, and `title` rules as
+    /// [`Options::metadata_field`]. Folded and literal blocks retain at least
+    /// one final newline for nonempty values. Values containing control
+    /// characters that cannot appear in a block use YAML escapes instead.
+    ///
+    /// ```
+    /// # use clap::Command;
+    /// use clapdown::{Flavor, MetadataStyle, Options, render};
+    /// let options = Options::new()
+    ///     .flavor(Flavor::Pandoc)
+    ///     .metadata_field_with_style("description", "A CLI reference.", MetadataStyle::Folded);
+    /// let md = render(&Command::new("demo"), &options);
+    /// assert!(md.contains("description: >\n  A CLI reference.\n"));
+    /// ```
+    pub fn metadata_field_with_style(
+        mut self,
+        key: impl Into<String>,
+        value: impl Into<String>,
+        style: MetadataStyle,
+    ) -> Self {
+        self.metadata_fields.push((key.into(), value.into(), style));
         self
     }
 }

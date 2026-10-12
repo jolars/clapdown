@@ -47,16 +47,17 @@ let markdown = clapdown::render_from::<Cli>(&clapdown::Options::new());
 
 ## Options
 
-  | Method                       | Default      | Effect                                     |
-  | ---------------------------- | ------------ | ------------------------------------------ |
-  | `flavor(Flavor)`             | `Mdbook`     | Target Markdown flavor.                    |
-  | `base_heading_level(u8)`     | `1`          | Heading level of the root command.         |
-  | `title(impl Into<String>)`   | command name | Override the root heading (Pandoc: title). |
-  | `table_of_contents(bool)`    | `false`      | Emit a nested table of contents.           |
-  | `footer(bool)`               | `false`      | Emit an attribution footer.                |
-  | `aliases(bool)`              | `true`       | Show command aliases.                      |
-  | `metadata(bool)`             | `true`       | Emit the Pandoc YAML metadata block.       |
-  | `metadata_field(key, value)` | none         | Add a custom Pandoc metadata field.        |
+  | Method                                         | Default      | Effect                                     |
+  | ---------------------------------------------- | ------------ | ------------------------------------------ |
+  | `flavor(Flavor)`                               | `Mdbook`     | Target Markdown flavor.                    |
+  | `base_heading_level(u8)`                       | `1`          | Heading level of the root command.         |
+  | `title(impl Into<String>)`                     | command name | Override the root heading (Pandoc: title). |
+  | `table_of_contents(bool)`                      | `false`      | Emit a nested table of contents.           |
+  | `footer(bool)`                                 | `false`      | Emit an attribution footer.                |
+  | `aliases(bool)`                                | `true`       | Show command aliases.                      |
+  | `metadata(bool)`                               | `true`       | Emit the Pandoc YAML metadata block.       |
+  | `metadata_field(key, value)`                   | none         | Add a custom Pandoc metadata field.        |
+  | `metadata_field_with_style(key, value, style)` | none         | Choose how a metadata value is written.    |
 
 ## Flavors
 
@@ -76,6 +77,34 @@ title: demo
 author: Jane Doe
 ---
 ```
+
+Metadata values preserve newlines, including trailing newlines. Single-line
+values use plain or quoted YAML scalars, while multiline values use literal
+blocks with the appropriate chomping indicator (`|-`, `|`, or `|+`).
+
+To request a paragraph explicitly, choose `MetadataStyle::Folded` (`>`):
+
+```rust
+let options = clapdown::Options::new()
+    .flavor(clapdown::Flavor::Pandoc)
+    .metadata_field_with_style(
+        "description",
+        "Comprehensive reference for the CLI, including all commands and options.",
+        clapdown::MetadataStyle::Folded,
+    );
+```
+
+```yaml
+description: >
+  Comprehensive reference for the CLI, including all commands and options.
+```
+
+Use `MetadataStyle::Literal` (`|`) to preserve line breaks and indentation.
+Both explicit block styles retain at least one trailing newline for nonempty
+values, so Pandoc can render ordinary text as a paragraph. Folded blocks turn
+ordinary line breaks into spaces. Literal blocks preserve Markdown paragraphs,
+lists, and code fences. The YAML `|` indicator does not make the value a code
+block in Pandoc; include Markdown code fences or indentation for verbatim text.
 
 ## License
 

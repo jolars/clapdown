@@ -38,7 +38,7 @@
 mod options;
 mod render;
 
-pub use options::{Flavor, Options};
+pub use options::{Flavor, MetadataStyle, Options};
 
 use clap::{Command, CommandFactory};
 

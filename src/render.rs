@@ -9,7 +9,7 @@ use std::fmt::Write;
 
 use clap::{Arg, ArgAction, Command};
 
-use crate::options::{Flavor, Options};
+use crate::options::{Flavor, MetadataStyle, Options};
 
 /// Render `root` to Markdown using `opts`.
 pub(crate) fn render(root: &Command, opts: &Options) -> String {
@@ -128,26 +128,82 @@ fn emits_metadata(opts: &Options) -> bool {
 fn write_yaml_metadata(buf: &mut String, path: &[String], opts: &Options) {
     let title = opts.title.clone().unwrap_or_else(|| path.join(" "));
     buf.push_str("---\n");
-    let _ = writeln!(buf, "title: {}", yaml_scalar(&title));
-    for (key, value) in &opts.metadata_fields {
+    let _ = writeln!(buf, "title: {}", yaml_scalar(&title, MetadataStyle::Auto));
+    for (key, value, style) in &opts.metadata_fields {
         // `title` is owned by `opts.title`; skip duplicates.
         if key == "title" {
             continue;
         }
-        let _ = writeln!(buf, "{key}: {}", yaml_scalar(value));
+        let _ = writeln!(buf, "{key}: {}", yaml_scalar(value, *style));
     }
     buf.push_str("---\n\n");
 }
 
-/// Render a string as a YAML scalar, quoting only when a plain scalar would be
-/// ambiguous or invalid.
-fn yaml_scalar(value: &str) -> String {
+/// Preserve multiline strings with literal blocks so YAML cannot fold away
+/// their line breaks.
+fn yaml_scalar(value: &str, style: MetadataStyle) -> String {
+    let needs_escapes = value.chars().any(|c| {
+        (c.is_control() && !matches!(c, '\n' | '\t')) || matches!(c, '\u{2028}' | '\u{2029}')
+    });
+    if !needs_escapes && (style != MetadataStyle::Auto || value.contains('\n')) {
+        return yaml_block(value, style);
+    }
     if is_plain_scalar(value) {
         value.to_string()
     } else {
-        let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
-        format!("\"{escaped}\"")
+        let mut quoted = String::from("\"");
+        for c in value.chars() {
+            match c {
+                '\\' => quoted.push_str("\\\\"),
+                '"' => quoted.push_str("\\\""),
+                '\n' => quoted.push_str("\\n"),
+                '\r' => quoted.push_str("\\r"),
+                '\t' => quoted.push_str("\\t"),
+                c if c.is_control() || matches!(c, '\u{2028}' | '\u{2029}') => {
+                    let _ = write!(quoted, "\\u{:04X}", c as u32);
+                }
+                c => quoted.push(c),
+            }
+        }
+        if style != MetadataStyle::Auto && !value.is_empty() && !value.ends_with('\n') {
+            quoted.push_str("\\n");
+        }
+        quoted.push('"');
+        quoted
     }
+}
+
+fn yaml_block(value: &str, style: MetadataStyle) -> String {
+    let indicator = if style == MetadataStyle::Folded {
+        '>'
+    } else {
+        '|'
+    };
+    let trailing_newlines = value.chars().rev().take_while(|&c| c == '\n').count();
+    let chomping =
+        if trailing_newlines > 1 || (!value.is_empty() && value.trim_matches('\n').is_empty()) {
+            "+"
+        } else if trailing_newlines == 0 && style == MetadataStyle::Auto {
+            "-"
+        } else {
+            ""
+        };
+    // YAML otherwise infers indentation from the content and can consume
+    // spaces that belong to an indented Markdown code block.
+    let indentation = if value
+        .split('\n')
+        .find(|line| !line.is_empty())
+        .is_some_and(|line| line.starts_with([' ', '\t']))
+    {
+        "2"
+    } else {
+        ""
+    };
+    let mut block = format!("{indicator}{indentation}{chomping}");
+    for line in value.split_terminator('\n') {
+        let _ = write!(block, "\n  {line}");
+    }
+    block
 }
 
 /// Whether `value` is safe to emit as an unquoted YAML plain scalar.
@@ -162,7 +218,9 @@ fn is_plain_scalar(value: &str) -> bool {
     if value.ends_with(':') || value.contains(": ") || value.contains(" #") {
         return false;
     }
-    !value.chars().any(char::is_control)
+    !value
+        .chars()
+        .any(|c| c.is_control() || matches!(c, '\u{2028}' | '\u{2029}'))
 }
 
 /// Write a heading, or a bold label if the level would exceed h6.

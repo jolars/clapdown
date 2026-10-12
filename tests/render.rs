@@ -1,7 +1,7 @@
 mod common;
 
 use clap::{Command, CommandFactory};
-use clapdown::{Flavor, Options, render};
+use clapdown::{Flavor, MetadataStyle, Options, render};
 use common::Cli;
 
 /// Extract the level of every ATX heading (`#`..`######`) in order.
@@ -173,6 +173,120 @@ fn pandoc_metadata_field_injects_custom_field() {
             .metadata_field("author", "Jane Doe"),
     );
     assert!(md.contains("\nauthor: Jane Doe\n"));
+}
+
+#[test]
+fn pandoc_metadata_preserves_multiline_values() {
+    let cases = [
+        ("First line\nSecond line", "|-\n  First line\n  Second line"),
+        (
+            "First line\nSecond line\n",
+            "|\n  First line\n  Second line",
+        ),
+        ("A paragraph.\n\n", "|+\n  A paragraph.\n  "),
+        ("\n", "|+\n  "),
+        ("\n\n", "|+\n  \n  "),
+        (
+            "\nFirst line\n\nSecond line",
+            "|-\n  \n  First line\n  \n  Second line",
+        ),
+        (
+            "    code\n  less indented\n",
+            "|2\n      code\n    less indented",
+        ),
+        (" \ntext\n", "|2\n   \n  text"),
+        ("---\n# A heading\n", "|\n  ---\n  # A heading"),
+    ];
+    for (value, expected) in cases {
+        let md = render(
+            &Cli::command(),
+            &Options::new()
+                .flavor(Flavor::Pandoc)
+                .metadata_field("description", value)
+                .metadata_field("author", "Jane Doe"),
+        );
+        assert!(
+            md.starts_with(&format!(
+                "---\ntitle: demo\ndescription: {expected}\nauthor: Jane Doe\n---\n\n"
+            )),
+            "unexpected metadata for {value:?}: {md}"
+        );
+    }
+}
+
+#[test]
+fn pandoc_explicit_metadata_styles_retain_a_final_newline() {
+    for (style, indicator) in [(MetadataStyle::Folded, ">"), (MetadataStyle::Literal, "|")] {
+        for value in ["A CLI reference.", "A CLI reference.\n"] {
+            let md = render(
+                &Cli::command(),
+                &Options::new()
+                    .flavor(Flavor::Pandoc)
+                    .metadata_field_with_style("description", value, style),
+            );
+            assert!(md.contains(&format!(
+                "\ndescription: {indicator}\n  A CLI reference.\n---\n"
+            )));
+        }
+    }
+}
+
+#[test]
+fn pandoc_literal_metadata_preserves_markdown_blocks() {
+    let md = render(
+        &Cli::command(),
+        &Options::new()
+            .flavor(Flavor::Pandoc)
+            .metadata_field_with_style(
+                "description",
+                "First paragraph.\n\nSecond paragraph.\n\n```rust\nlet x = 1;\n```",
+                MetadataStyle::Literal,
+            ),
+    );
+    assert!(md.contains("description: |\n  First paragraph.\n  \n  Second paragraph.\n  \n  ```rust\n  let x = 1;\n  ```\n---\n"));
+}
+
+#[test]
+fn pandoc_metadata_escapes_control_characters() {
+    let md = render(
+        &Cli::command(),
+        &Options::new().flavor(Flavor::Pandoc).metadata_field(
+            "description",
+            "Line one\r\nLine two\t\"quoted\"\\\0\u{2028}",
+        ),
+    );
+    assert!(
+        md.contains("description: \"Line one\\r\\nLine two\\t\\\"quoted\\\"\\\\\\u0000\\u2028\"\n")
+    );
+}
+
+#[test]
+fn pandoc_multiline_title_preserves_newlines() {
+    let md = render(
+        &Cli::command(),
+        &Options::new()
+            .flavor(Flavor::Pandoc)
+            .title("A title\nA subtitle\n"),
+    );
+    assert!(md.starts_with("---\ntitle: |\n  A title\n  A subtitle\n---\n"));
+}
+
+#[test]
+fn metadata_styles_follow_existing_metadata_rules() {
+    let options = Options::new()
+        .metadata_field_with_style("title", "Ignored", MetadataStyle::Folded)
+        .metadata_field_with_style("description", "A description.", MetadataStyle::Literal);
+    let mdbook = render(&Cli::command(), &options);
+    assert!(!mdbook.contains("A description."));
+    assert!(!mdbook.contains("Ignored"));
+    let pandoc_without_metadata = render(
+        &Cli::command(),
+        &options.clone().flavor(Flavor::Pandoc).metadata(false),
+    );
+    assert_eq!(mdbook, pandoc_without_metadata);
+    let pandoc = render(&Cli::command(), &options.flavor(Flavor::Pandoc));
+    assert!(pandoc.starts_with("---\ntitle: demo\ndescription: |\n"));
+    assert!(!pandoc.contains("Ignored"));
 }
 
 #[test]
