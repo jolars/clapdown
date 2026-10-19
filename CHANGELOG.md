@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/jolars/clapdown/compare/v0.2.0...v0.3.0) (2026-10-19)
+
+### Features
+
+- support CommonMark output ([`a627d82`](https://github.com/jolars/clapdown/commit/a627d825a389377dc3188bb8f9c76e3d0ce89a3b))
+- add metadata styles and preserve newlines ([`de59365`](https://github.com/jolars/clapdown/commit/de5936534f766a2ede79f7fa4a1553ce161436ca))
+
 ## [0.2.0](https://github.com/jolars/clapdown/compare/v0.1.0...v0.2.0) (2026-07-02)
 
 ### Breaking changes
