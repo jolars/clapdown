@@ -4,7 +4,8 @@
 //! heading outline tracks command nesting without ever skipping a level: the
 //! root command is a top-level heading, each subcommand descends one level, and
 //! a command's `Arguments`/`Options` sections sit one level below the command.
-//! Arguments render as definition lists.
+//! Arguments render as definition lists, or as bullet lists with
+//! [`Flavor::CommonMark`].
 //!
 //! # Example
 //!

@@ -301,6 +301,35 @@ fn pandoc_without_metadata_matches_mdbook() {
 }
 
 #[test]
+fn commonmark_renders_arguments_as_bullets() {
+    let md = render(&Cli::command(), &Options::new().flavor(Flavor::CommonMark));
+    assert!(md.starts_with("# `demo`\n"));
+    assert!(md.contains("- **`--output <OUTPUT>`**\n\n  Output format\n"));
+    assert!(md.contains("\n  Default value: `pretty`\n"));
+    assert!(md.contains("\n  Possible values:\n\n  - `pretty`: Annotated multi-line snippets\n"));
+    assert!(md.contains("- **`<PATH>...`**\n\n  Paths to format\n"));
+    assert!(!md.lines().any(|line| line.starts_with(':')));
+}
+
+#[test]
+fn commonmark_preserves_multiblock_help_and_empty_arguments() {
+    let cmd = Command::new("demo")
+        .arg(clap::Arg::new("bare").long("bare"))
+        .arg(clap::Arg::new("detail").long("detail").long_help(
+            "First paragraph.\n\nSecond paragraph.\n\n- First item\n- Second item\n\n```text\nexample\n```",
+        ));
+    let md = render(&cmd, &Options::new().flavor(Flavor::CommonMark));
+    assert!(md.contains("- **`--bare <BARE>`**\n\n- **`--detail <DETAIL>`**\n"));
+    assert!(md.contains("  First paragraph.\n\n  Second paragraph.\n\n  - First item\n  - Second item\n\n  ```text\n  example\n  ```\n"));
+}
+
+#[test]
+fn commonmark_full_document_snapshot() {
+    let md = render(&Cli::command(), &Options::new().flavor(Flavor::CommonMark));
+    insta::assert_snapshot!(md);
+}
+
+#[test]
 fn full_document_snapshot() {
     let md = render(&Cli::command(), &Options::new());
     insta::assert_snapshot!(md);

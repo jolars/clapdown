@@ -90,7 +90,7 @@ fn render_command(buf: &mut String, cmd: &Command, path: &[String], depth: usize
     if !positionals.is_empty() {
         write_heading(buf, level + 1, "Arguments");
         for arg in positionals {
-            buf.push_str(&render_arg(arg));
+            buf.push_str(&render_arg(arg, opts.flavor));
             buf.push('\n');
         }
     }
@@ -104,7 +104,7 @@ fn render_command(buf: &mut String, cmd: &Command, path: &[String], depth: usize
     if !options.is_empty() {
         write_heading(buf, level + 1, "Options");
         for arg in options {
-            buf.push_str(&render_arg(arg));
+            buf.push_str(&render_arg(arg, opts.flavor));
             buf.push('\n');
         }
     }
@@ -232,8 +232,8 @@ fn write_heading(buf: &mut String, level: usize, text: &str) {
     }
 }
 
-/// Render one argument as a definition-list item.
-fn render_arg(arg: &Arg) -> String {
+/// Render one argument using the target flavor's list syntax.
+fn render_arg(arg: &Arg, flavor: Flavor) -> String {
     let term = arg_term(arg);
     let mut blocks: Vec<String> = Vec::new();
 
@@ -286,7 +286,25 @@ fn render_arg(arg: &Arg) -> String {
         }
     }
 
-    definition(&term, &blocks)
+    if flavor == Flavor::CommonMark {
+        bullet(&term, &blocks)
+    } else {
+        definition(&term, &blocks)
+    }
+}
+
+fn bullet(term: &str, blocks: &[String]) -> String {
+    let mut out = format!("- **{term}**\n");
+    for block in blocks {
+        out.push('\n');
+        for line in block.lines() {
+            if !line.is_empty() {
+                let _ = write!(out, "  {line}");
+            }
+            out.push('\n');
+        }
+    }
+    out
 }
 
 /// Format the invocation term for an argument, e.g. `` `-o`, `--output <OUT>` ``.

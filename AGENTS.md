@@ -33,8 +33,8 @@ Three modules under `src/`:
   `render_from::<C: CommandFactory>(&Options)`.
 - **`options.rs`** --- the `Options` config builder (chained setters, then
   passed to `render`/`render_from`)
-  and the `Flavor` enum. `Flavor` is `#[non_exhaustive]`; `Mdbook` and `Pandoc`
-  exist, with `CommonMark` planned, so match arms must stay open. `Pandoc`
+  and the `Flavor` enum. `Flavor` is `#[non_exhaustive]`; `Mdbook`, `Pandoc`,
+  and `CommonMark` exist, so match arms must stay open. `Pandoc`
   differs only in a leading YAML metadata block (see below); the `metadata` and
   `metadata_fields` options drive it.
 - **`render.rs`** --- the whole rendering engine, private to the crate. `render`
@@ -51,6 +51,7 @@ Three modules under `src/`:
   filtered out.
 - Arguments render as mdBook/Pandoc **definition lists** (`term` line, then
   `:   definition`). `definition` handles multi-block, multi-line bodies.
+  CommonMark uses bullet lists with bold terms and indented bodies.
 - The `Pandoc` flavor prepends a YAML metadata block (`write_yaml_metadata`)
   with the `title` (the `title` option, else the command name) plus any
   `metadata_fields`. When the block is emitted (`emits_metadata`), the root

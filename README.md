@@ -10,7 +10,8 @@ Generate well-structured Markdown documentation from a [`clap`] CLI.
 outline tracks command nesting **without ever skipping a level**: the root
 command is a top-level heading, each subcommand descends exactly one level, and
 a command's `Arguments`/`Options` sections sit one level below the command.
-Arguments render as definition lists.
+Arguments render as definition lists by default, or as bullet lists with
+`Flavor::CommonMark`.
 
 It is inspired by [`clap-markdown`] but fixes that crate's malformed heading
 outline (which jumps `h1 -> h2 -> h6` and renders every subcommand as a flat
@@ -23,7 +24,7 @@ Add the crate (typically as a build-dependency, since generating docs from a
 
 ```toml
 [build-dependencies]
-clapdown = "0.1"
+clapdown = "0.2"
 clap = { version = "4", features = ["derive"] }
 ```
 
@@ -61,9 +62,12 @@ let markdown = clapdown::render_from::<Cli>(&clapdown::Options::new());
 
 ## Flavors
 
-`Flavor::Mdbook` and `Flavor::Pandoc` are implemented; a `CommonMark` flavor is
-planned. Both emit [definition lists], which render natively in [mdBook]
+`Flavor::Mdbook` and `Flavor::Pandoc` emit [definition lists], which render natively in [mdBook]
 (enabled by default) and in Pandoc. The `Flavor` enum is `#[non_exhaustive]`.
+
+`Flavor::CommonMark` uses bullet lists with bold argument terms and indented
+descriptions, defaults, and possible values. It works with CommonMark and
+GitHub-flavored Markdown without extensions and emits no YAML metadata.
 
 `Flavor::Pandoc` additionally prefixes the document with a [YAML metadata block]
 carrying the `title` (from `title(...)`, else the command name) plus any

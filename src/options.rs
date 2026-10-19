@@ -3,9 +3,8 @@
 /// The Markdown flavor to target.
 ///
 /// Different consumers accept slightly different Markdown extensions.
-/// [`Flavor::Mdbook`] and [`Flavor::Pandoc`] are implemented; `CommonMark` is
-/// planned. The enum is `#[non_exhaustive]` so new flavors can be added without
-/// a breaking change.
+/// The enum is `#[non_exhaustive]` so new flavors can be added without a
+/// breaking change.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum Flavor {
@@ -20,6 +19,11 @@ pub enum Flavor {
     /// the title in the metadata, the root command's `h1` is omitted from the
     /// body to avoid duplicating it.
     Pandoc,
+
+    /// [CommonMark](https://commonmark.org/) Markdown, also suitable for
+    /// GitHub-flavored Markdown. Renders arguments as bullet lists with bold
+    /// terms, without requiring definition-list extensions or YAML metadata.
+    CommonMark,
 }
 
 /// How a custom Pandoc metadata value is written to YAML.
