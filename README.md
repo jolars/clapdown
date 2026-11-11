@@ -6,12 +6,8 @@
 
 Generate well-structured Markdown documentation from a [`clap`] CLI.
 
-`clapdown` walks a `clap::Command` and renders it to Markdown whose heading
-outline tracks command nesting **without ever skipping a level**: the root
-command is a top-level heading, each subcommand descends exactly one level, and
-a command's `Arguments`/`Options` sections sit one level below the command.
-Arguments render as definition lists by default, or as bullet lists with
-`Flavor::CommonMark`.
+`clapdown` walks a `clap::Command` and renders it to Markdown Arguments render
+as definition lists by default, or as bullet lists with `Flavor::CommonMark`.
 
 It is inspired by [`clap-markdown`] but fixes that crate's malformed heading
 outline (which jumps `h1 -> h2 -> h6` and renders every subcommand as a flat
@@ -62,8 +58,9 @@ let markdown = clapdown::render_from::<Cli>(&clapdown::Options::new());
 
 ## Flavors
 
-`Flavor::Mdbook` and `Flavor::Pandoc` emit [definition lists], which render natively in [mdBook]
-(enabled by default) and in Pandoc. The `Flavor` enum is `#[non_exhaustive]`.
+`Flavor::Mdbook` and `Flavor::Pandoc` emit [definition lists], which render
+natively in [mdBook] (enabled by default) and in Pandoc. The `Flavor` enum is
+`#[non_exhaustive]`.
 
 `Flavor::CommonMark` uses bullet lists with bold argument terms and indented
 descriptions, defaults, and possible values. It works with CommonMark and
@@ -103,12 +100,12 @@ description: >
   Comprehensive reference for the CLI, including all commands and options.
 ```
 
-Use `MetadataStyle::Literal` (`|`) to preserve line breaks and indentation.
-Both explicit block styles retain at least one trailing newline for nonempty
-values, so Pandoc can render ordinary text as a paragraph. Folded blocks turn
-ordinary line breaks into spaces. Literal blocks preserve Markdown paragraphs,
-lists, and code fences. The YAML `|` indicator does not make the value a code
-block in Pandoc; include Markdown code fences or indentation for verbatim text.
+Use `MetadataStyle::Literal` (`|`) to preserve line breaks and indentation. Both
+explicit block styles retain at least one trailing newline for nonempty values,
+so Pandoc can render ordinary text as a paragraph. Folded blocks turn ordinary
+line breaks into spaces. Literal blocks preserve Markdown paragraphs, lists, and
+code fences. The YAML `|` indicator does not make the value a code block in
+Pandoc; include Markdown code fences or indentation for verbatim text.
 
 ## License
 
