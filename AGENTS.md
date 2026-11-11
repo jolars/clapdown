@@ -24,6 +24,26 @@ Rendering is covered by an [`insta`] snapshot in
 `tests/snapshots/render__full_document_snapshot.snap`. When output intentionally
 changes, review and accept with `cargo insta review` (or `cargo insta accept`).
 
+## Publishing
+
+Versionary manages release PRs and creates `v<version>` tags after all CI checks
+pass. Keep the `RELEASE_TOKEN` repository secret configured so those tags trigger
+the `Publish Crate` workflow in `.github/workflows/publish-crates.yml`.
+
+Publishing uses [crates.io trusted publishing] with the GitHub environment
+`release`. Configure a trusted publisher in the [crate settings] with owner
+`jolars`, repository `clapdown`, workflow `publish-crates.yml`, and environment
+`release`. No long-lived crates.io token is needed.
+
+The workflow checks that the tag matches `Cargo.toml`, then runs
+`cargo publish --locked`. To retry an unpublished release, dispatch the workflow
+on its existing tag with
+`gh workflow run publish-crates.yml --ref v<version>`. Dispatches on branches
+skip publishing.
+
+[crates.io trusted publishing]: https://crates.io/docs/trusted-publishing
+[crate settings]: https://crates.io/crates/clapdown/settings
+
 ## Architecture
 
 Three modules under `src/`:
