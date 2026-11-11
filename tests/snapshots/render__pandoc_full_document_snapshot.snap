@@ -7,6 +7,8 @@ title: demo
 author: Jane Doe
 ---
 
+Welcome to the demo command reference.
+
 A demo CLI for testing clapdown
 
 **Usage:** `demo [OPTIONS] <COMMAND>`
@@ -16,7 +18,11 @@ A demo CLI for testing clapdown
 `-v`, `--verbose`
 :   Increase verbosity
 
+Choose a subcommand below for more details.
+
 ## `demo parse`
+
+Inspect how a document is parsed.
 
 Parse a file
 
@@ -32,7 +38,11 @@ Parse a file
 `--check`
 :   Only check, do not write
 
+Parsing does not change the input file.
+
 ## `demo format`
+
+Format documents consistently.
 
 Format files
 
@@ -62,3 +72,12 @@ Formats every given path in place. Reads stdin when no paths are given.
 :   Maximum line width
 
     Default value: `80`
+
+Examples:
+
+```sh
+demo format document.md
+```
+
+- Reads stdin when no paths are given.
+- Formats paths in place.

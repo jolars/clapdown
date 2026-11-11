@@ -42,6 +42,13 @@ or go straight from the type:
 let markdown = clapdown::render_from::<Cli>(&clapdown::Options::new());
 ```
 
+Command descriptions and argument help prefer their long variants when available.
+The renderer also includes `before_long_help` and `after_long_help`, falling back
+to `before_help` and `after_help`. Introductory help appears before the command
+description. Trailing help follows its arguments and options, before any expanded
+subcommand sections. Help text passes through as Markdown, preserving paragraphs,
+lists, and code fences.
+
 ## Options
 
   | Method                                         | Default      | Effect                                     |

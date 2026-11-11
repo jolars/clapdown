@@ -56,6 +56,10 @@ fn render_command(buf: &mut String, cmd: &Command, path: &[String], depth: usize
         write_heading(buf, level, &heading);
     }
 
+    if let Some(help) = cmd.get_before_long_help().or_else(|| cmd.get_before_help()) {
+        let _ = writeln!(buf, "{help}\n");
+    }
+
     // Description: prefer the long about, fall back to the short about.
     if let Some(about) = cmd.get_long_about().or_else(|| cmd.get_about()) {
         let _ = writeln!(buf, "{about}\n");
@@ -107,6 +111,11 @@ fn render_command(buf: &mut String, cmd: &Command, path: &[String], depth: usize
             buf.push_str(&render_arg(arg, opts.flavor));
             buf.push('\n');
         }
+    }
+
+    // Keep trailing help in this command's section, before expanded subcommands.
+    if let Some(help) = cmd.get_after_long_help().or_else(|| cmd.get_after_help()) {
+        let _ = writeln!(buf, "{help}\n");
     }
 
     // Subcommands: each recurses one level deeper, so its heading is a sibling

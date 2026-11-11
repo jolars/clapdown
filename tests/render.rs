@@ -68,6 +68,63 @@ fn long_about_is_preferred_over_short_about() {
 }
 
 #[test]
+fn long_command_help_is_preferred_over_short_help() {
+    for flavor in [Flavor::Mdbook, Flavor::Pandoc, Flavor::CommonMark] {
+        let md = render(&Cli::command(), &Options::new().flavor(flavor));
+        assert!(md.contains("Welcome to the demo command reference."));
+        assert!(md.contains("Choose a subcommand below for more details."));
+        assert!(!md.contains("Short introduction."));
+        assert!(!md.contains("Short closing note."));
+    }
+}
+
+#[test]
+fn short_command_help_is_used_when_long_help_is_missing() {
+    for flavor in [Flavor::Mdbook, Flavor::Pandoc, Flavor::CommonMark] {
+        let md = render(&Cli::command(), &Options::new().flavor(flavor));
+        assert!(md.contains("Inspect how a document is parsed."));
+        assert!(md.contains("Parsing does not change the input file."));
+    }
+}
+
+#[test]
+fn command_help_stays_with_its_command() {
+    for flavor in [Flavor::Mdbook, Flavor::Pandoc, Flavor::CommonMark] {
+        let md = render(&Cli::command(), &Options::new().flavor(flavor));
+        let positions = [
+            "Welcome to the demo command reference.",
+            "A demo CLI for testing clapdown",
+            "**Usage:** `demo [OPTIONS] <COMMAND>`",
+            "Increase verbosity",
+            "Choose a subcommand below for more details.",
+            "## `demo parse`",
+            "Inspect how a document is parsed.",
+            "Parse a file",
+            "**Usage:** `demo parse [OPTIONS] [FILE]`",
+            "Only check, do not write",
+            "Parsing does not change the input file.",
+            "## `demo format`",
+            "Format documents consistently.",
+            "Formats every given path in place.",
+            "Maximum line width",
+            "Examples:",
+        ]
+        .map(|text| md.find(text).unwrap_or_else(|| panic!("missing {text:?}")));
+        assert!(positions.windows(2).all(|pair| pair[0] < pair[1]));
+    }
+}
+
+#[test]
+fn command_help_preserves_markdown_blocks() {
+    for flavor in [Flavor::Mdbook, Flavor::Pandoc, Flavor::CommonMark] {
+        let md = render(&Cli::command(), &Options::new().flavor(flavor));
+        assert!(md.ends_with(
+            "Examples:\n\n```sh\ndemo format document.md\n```\n\n- Reads stdin when no paths are given.\n- Formats paths in place.\n"
+        ));
+    }
+}
+
+#[test]
 fn option_renders_as_definition_list_with_defaults_and_values() {
     let md = render(&Cli::command(), &Options::new());
 
