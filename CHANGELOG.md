@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.1](https://github.com/jolars/clapdown/compare/v0.3.0...v0.3.1) (2026-11-11)
+
+### Bug Fixes
+
+- render before and after command help ([`ee93b39`](https://github.com/jolars/clapdown/commit/ee93b396bf2fc2fd23b774ee0ecb108cecd5bbf1))
+
 ## [0.3.0](https://github.com/jolars/clapdown/compare/v0.2.0...v0.3.0) (2026-10-19)
 
 ### Features
